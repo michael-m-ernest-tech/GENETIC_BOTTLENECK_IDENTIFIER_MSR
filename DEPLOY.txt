@@ -1,0 +1,47 @@
+EcoGen Diagnostics — GitHub + Vercel
+
+Unzip so these files sit at the ROOT of your GitHub repository
+(not inside a second nested folder).
+
+index.html MUST be the homepage file at the root. Vercel serves it first.
+Do not add a LICENSE or MIT license file.
+
+Required at repo root:
+
+  index.html
+  api/index.py
+  vercel.json
+  requirements.txt
+  runtime.txt
+  sample-data.csv
+  README.md
+  .gitignore
+  .gitattributes
+
+1) Create an empty GitHub repo named ecogen-diagnostics
+   (do not add a README, .gitignore, or license on GitHub).
+
+2) Upload this unzipped folder to that repo, or from a terminal:
+
+     git init -b main
+     git add .
+     git commit -m "Initial commit: EcoGen Diagnostics"
+     git remote add origin https://github.com/YOUR-USERNAME/ecogen-diagnostics.git
+     git push -u origin main
+
+3) On vercel.com: Add New → Project → import that GitHub repo.
+
+4) Vercel settings:
+     Root Directory     ./
+     Framework Preset   Other
+     Build Command      (leave empty)
+     Output Directory   (leave empty)
+
+5) Deploy. Then open:
+     https://YOUR-APP.vercel.app/            (index.html)
+     https://YOUR-APP.vercel.app/api/health
+
+   Health check should return:
+     {"ok":true,"service":"EcoGen Diagnostics"}
+
+   Upload sample-data.csv on the home page to confirm analysis.

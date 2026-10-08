@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#020617">
+  <meta name="description" content="A conservation genomics screening dashboard for population heterozygosity metrics.">
+  <title>EcoGen Diagnostics — Conservation Genomics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
+          boxShadow: {
+            glow: "0 0 80px rgba(99, 102, 241, 0.10)",
+            card: "0 24px 80px rgba(0, 0, 0, 0.28)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background-color: #020617;
+      background-image: radial-gradient(ellipse at 50% -22%, rgba(79, 70, 229, .19), transparent 48%);
+    }
+    .grid-texture {
+      background-image: linear-gradient(rgba(148, 163, 184, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, .035) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, black, transparent 80%);
+    }
+    .loader-ring { border-top-color: #818cf8; }
+    .drop-target:focus-visible { outline: 2px solid #818cf8; outline-offset: 5px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen overflow-x-hidden font-sans text-slate-100 antialiased selection:bg-indigo-500/30">
+  <div class="pointer-events-none fixed inset-0 -z-10 grid-texture"></div>
+
+  <main class="mx-auto min-h-screen w-full max-w-6xl px-5 pb-14 pt-7 sm:px-8 sm:pt-10">
+    <header class="flex items-center justify-between gap-4">
+      <a class="group flex items-center gap-3" href="/" aria-label="EcoGen Diagnostics home">
+        <span class="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-500/10 text-indigo-300 shadow-glow">
+          <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <path d="M7 3c0 4 10 5 10 9s-10 5-10 9M17 3c0 4-10 5-10 9s10 5 10 9M8.8 6.5h6.4M7 12h10m-8.2 5.5h6.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span>
+          <span class="block text-sm font-semibold tracking-wide text-white">EcoGen <span class="text-indigo-300">Diagnostics</span></span>
+          <span class="mt-0.5 block text-[10px] font-medium uppercase tracking-[.22em] text-slate-500">Conservation genomics</span>
+        </span>
+      </a>
+      <span class="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] font-medium tracking-wide text-slate-400 sm:flex">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+        POPULATION SCREENING
+      </span>
+    </header>
+
+    <section class="mx-auto mt-16 max-w-3xl text-center sm:mt-24">
+      <div class="mx-auto inline-flex items-center gap-2 rounded-full border border-indigo-400/15 bg-indigo-400/[.06] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[.17em] text-indigo-200/80">
+        <svg viewBox="0 0 16 16" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.75"/><path d="M8 4.5v3.8l2.3 1.3" stroke-linecap="round"/></svg>
+        Genetic diversity, made readable
+      </div>
+      <h1 class="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">A clearer read on<br class="hidden sm:block"> <span class="bg-gradient-to-r from-indigo-300 via-violet-200 to-cyan-200 bg-clip-text text-transparent">population health.</span></h1>
+      <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">Explore heterozygosity and inbreeding signals in your genotype data, with a focused screening report for conservation research.</p>
+    </section>
+
+    <section class="mx-auto mt-11 max-w-3xl rounded-[28px] border border-slate-800/90 bg-slate-900/60 p-3 shadow-card backdrop-blur-xl sm:mt-14 sm:p-5" aria-label="Genetic dataset upload">
+      <div id="errorBox" class="mb-3 hidden rounded-2xl border border-rose-400/20 bg-rose-400/[.07] px-4 py-3.5 text-sm text-rose-200" role="alert" aria-live="assertive"></div>
+
+      <div id="dropzone" class="drop-target group relative flex min-h-[250px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[22px] border border-dashed border-slate-700 bg-slate-950/50 px-6 py-10 text-center transition duration-300 hover:border-indigo-400/80 hover:bg-indigo-500/[.035] sm:min-h-[290px]" role="button" tabindex="0" aria-label="Choose or drop a CSV genotype file">
+        <input id="fileInput" class="sr-only" type="file" accept=".csv,text/csv" aria-label="Choose a CSV file">
+        <div class="pointer-events-none absolute inset-x-1/4 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent opacity-0 transition group-hover:opacity-100"></div>
+        <span class="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-indigo-300 transition group-hover:scale-105 group-hover:border-indigo-400/40 group-hover:bg-indigo-500/10">
+          <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <p class="mt-5 text-base font-medium text-slate-100">Drop your genotype CSV here</p>
+        <p class="mt-1.5 text-sm text-slate-500">or <span class="text-indigo-300 underline decoration-indigo-400/40 underline-offset-4">browse files</span> on your device</p>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-500">
+          <span class="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-1">.CSV FORMAT</span>
+          <span class="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-1">UP TO 4 MiB</span>
+          <span class="rounded-md border border-slate-800 bg-slate-900/80 px-2 py-1">DIPLOID MARKERS</span>
+        </div>
+      </div>
+
+      <div id="loadingState" class="hidden min-h-[250px] flex-col items-center justify-center rounded-[22px] bg-slate-950/40 px-6 py-10 text-center sm:min-h-[290px]" role="status" aria-live="polite">
+        <span class="loader-ring h-12 w-12 animate-spin rounded-full border-[3px] border-slate-800"></span>
+        <p class="mt-5 font-medium text-white">Reading your population data</p>
+        <p id="loadingFileName" class="mt-1 max-w-full truncate text-sm text-slate-500"></p>
+        <p class="mt-5 text-xs text-slate-600">Calculating diversity markers…</p>
+      </div>
+
+      <div id="results" class="hidden p-3 sm:p-5" aria-live="polite">
+        <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+          <div>
+            <div id="statusBadge" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.18em]"></div>
+            <h2 id="verdictTitle" class="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl"></h2>
+            <p id="verdictText" class="mt-2 max-w-2xl text-sm leading-6 text-slate-400"></p>
+          </div>
+          <button id="resetButton" type="button" class="shrink-0 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white">Analyze another file</button>
+        </div>
+
+        <div id="verdictCallout" class="mt-7 rounded-r-2xl border-l-2 border-slate-600 bg-slate-950/60 px-4 py-3 text-xs leading-5 text-slate-400 sm:px-5">
+          Status is a rule-based screening result. Use it with population history and independent genetic analyses.
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+            <div class="flex items-center justify-between"><h3 class="text-xs font-medium uppercase tracking-[.13em] text-slate-500">Observed heterozygosity</h3><span class="rounded-lg bg-indigo-400/10 px-2 py-1 text-[10px] font-semibold text-indigo-200">Ho</span></div>
+            <p id="hoValue" class="mt-5 font-mono text-3xl font-medium tracking-tight text-white">—</p>
+            <p class="mt-2 text-xs text-slate-600">Mean fraction of heterozygous calls</p>
+          </article>
+          <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+            <div class="flex items-center justify-between"><h3 class="text-xs font-medium uppercase tracking-[.13em] text-slate-500">Expected heterozygosity</h3><span class="rounded-lg bg-violet-400/10 px-2 py-1 text-[10px] font-semibold text-violet-200">He</span></div>
+            <p id="heValue" class="mt-5 font-mono text-3xl font-medium tracking-tight text-white">—</p>
+            <p class="mt-2 text-xs text-slate-600">Mean allele diversity (1 − Σpᵢ²)</p>
+          </article>
+          <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+            <div class="flex items-center justify-between"><h3 class="text-xs font-medium uppercase tracking-[.13em] text-slate-500">Inbreeding index</h3><span class="rounded-lg bg-cyan-400/10 px-2 py-1 text-[10px] font-semibold text-cyan-200">Fis</span></div>
+            <p id="fisValue" class="mt-5 font-mono text-3xl font-medium tracking-tight text-white">—</p>
+            <p class="mt-2 text-xs text-slate-600">(He − Ho) / He</p>
+          </article>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-5 py-4 text-xs text-slate-500">
+          <span class="flex items-center gap-2"><svg viewBox="0 0 16 16" class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="6" cy="5" r="2.3"/><path d="M2.4 13c.4-2 1.6-3 3.6-3s3.2 1 3.6 3M11 6.1a2 2 0 0 1 0 3.8m.6 1.1c1.1.4 1.7 1 2 2" stroke-linecap="round"/></svg><strong id="samplesValue" class="font-semibold text-slate-300">0</strong> individuals</span>
+          <span class="flex items-center gap-2"><svg viewBox="0 0 16 16" class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M8 1.8c-1.5 1-3.5 1.3-3.5 3.4 0 1.8 3.5 3.1 3.5 4.8 0 1.8-2 2.4-3.5 4.2m3.5-12.4c1.5 1 3.5 1.3 3.5 3.4C11.5 7 8 8.3 8 10c0 1.8 2 2.4 3.5 4.2M5 4h6M4.7 8h6.6M5 12h6" stroke-linecap="round"/></svg><strong id="lociValue" class="font-semibold text-slate-300">0</strong> loci analyzed</span>
+          <span id="fileNameValue" class="ml-auto max-w-full truncate text-slate-600"></span>
+        </div>
+        <details class="mt-5 rounded-xl border border-slate-800/70 bg-slate-950/30 px-4 py-3">
+          <summary class="cursor-pointer text-xs font-medium text-slate-400 marker:text-slate-600">How to interpret this screening result</summary>
+          <p class="mt-3 text-xs leading-5 text-slate-500">This app applies simple Ho/He and Fis thresholds. Ho greater than He alone is not a formal bottleneck test; proper bottleneck methods compare heterozygosity with an expectation conditioned on allele count under a mutation-drift model. Population structure, relatedness, sample design, and genotyping quality can also change these summaries.</p>
+        </details>
+      </div>
+    </section>
+
+    <div class="mx-auto mt-5 flex max-w-3xl flex-col items-center justify-between gap-3 px-1 text-center text-xs text-slate-600 sm:flex-row sm:text-left">
+      <p>Genotype data is processed for this request and is not saved by this app.</p>
+      <a href="/sample-data.csv" download class="text-slate-500 underline decoration-slate-700 underline-offset-4 transition hover:text-indigo-300">Download example CSV</a>
+    </div>
+
+    <footer class="mx-auto mt-16 flex max-w-3xl flex-col items-center justify-between gap-3 border-t border-slate-900 pt-5 text-[11px] text-slate-600 sm:flex-row">
+      <p>EcoGen Diagnostics <span class="px-1 text-slate-800">·</span> A conservation genomics screening tool</p>
+      <p>For research support only · Interpret with expert review</p>
+    </footer>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const dropzone = document.getElementById("dropzone");
+    const loadingState = document.getElementById("loadingState");
+    const errorBox = document.getElementById("errorBox");
+    const results = document.getElementById("results");
+    const resetButton = document.getElementById("resetButton");
+    const maxBytes = 4 * 1024 * 1024;
+
+    const colorStyles = {
+      red: {
+        badge: "border-rose-400/20 bg-rose-400/[.08] text-rose-200",
+        dot: "bg-rose-400",
+        callout: "border-red-500",
+        note: "The rule-based status flags a pattern for follow-up; it does not establish a cause."
+      },
+      yellow: {
+        badge: "border-amber-400/20 bg-amber-400/[.08] text-amber-200",
+        dot: "bg-amber-400",
+        callout: "border-amber-500",
+        note: "Review inbreeding, habitat isolation, population structure, and data quality."
+      },
+      green: {
+        badge: "border-emerald-400/20 bg-emerald-400/[.08] text-emerald-200",
+        dot: "bg-emerald-400",
+        callout: "border-emerald-500",
+        note: "This result only describes the thresholds in this screen; it is not proof of genetic equilibrium."
+      }
+    };
+
+    function showError(message) {
+      fileInput.value = "";
+      errorBox.textContent = message;
+      errorBox.classList.remove("hidden");
+      dropzone.classList.remove("hidden");
+      loadingState.classList.add("hidden");
+      loadingState.classList.remove("flex");
+      results.classList.add("hidden");
+    }
+
+    function resetView() {
+      fileInput.value = "";
+      errorBox.textContent = "";
+      errorBox.classList.add("hidden");
+      dropzone.classList.remove("hidden");
+      loadingState.classList.add("hidden");
+      loadingState.classList.remove("flex");
+      results.classList.add("hidden");
+    }
+
+    function formatMetric(value) {
+      return typeof value === "number" && Number.isFinite(value) ? value.toFixed(4) : "N/A";
+    }
+
+    function renderResults(data, fileName) {
+      const style = colorStyles[data.color] || colorStyles.green;
+      const badge = document.getElementById("statusBadge");
+      badge.className = `inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.18em] ${style.badge}`;
+      badge.replaceChildren();
+      const dot = document.createElement("span");
+      dot.className = `h-1.5 w-1.5 rounded-full ${style.dot}`;
+      dot.setAttribute("aria-hidden", "true");
+      badge.append(dot, document.createTextNode(data.status_text || data.status || "RESULT"));
+
+      document.getElementById("verdictTitle").textContent = data.verdict?.title || "Screening complete";
+      document.getElementById("verdictText").textContent = data.verdict?.description || "Your summary is ready.";
+      const callout = document.getElementById("verdictCallout");
+      callout.className = `mt-7 rounded-r-2xl border-l-2 bg-slate-950/60 px-4 py-3 text-xs leading-5 text-slate-400 sm:px-5 ${style.callout}`;
+      callout.textContent = style.note;
+
+      document.getElementById("hoValue").textContent = formatMetric(data.ho);
+      document.getElementById("heValue").textContent = formatMetric(data.he);
+      document.getElementById("fisValue").textContent = formatMetric(data.fis);
+      document.getElementById("samplesValue").textContent = Number(data.samples_count || 0).toLocaleString();
+      document.getElementById("lociValue").textContent = Number(data.loci_count || 0).toLocaleString();
+      document.getElementById("fileNameValue").textContent = fileName;
+
+      dropzone.classList.add("hidden");
+      loadingState.classList.add("hidden");
+      loadingState.classList.remove("flex");
+      errorBox.classList.add("hidden");
+      results.classList.remove("hidden");
+    }
+
+    async function analyzeFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        showError("Please choose a file with the .csv extension.");
+        return;
+      }
+      if (file.size > maxBytes) {
+        showError("This file is larger than the 4 MiB upload limit.");
+        return;
+      }
+
+      errorBox.classList.add("hidden");
+      dropzone.classList.add("hidden");
+      loadingState.classList.remove("hidden");
+      loadingState.classList.add("flex");
+      document.getElementById("loadingFileName").textContent = file.name;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("/api/upload", { method: "POST", body: formData });
+        const responseBody = await response.text();
+        let data;
+        try {
+          data = responseBody ? JSON.parse(responseBody) : {};
+        } catch (_parseError) {
+          const contentType = response.headers.get("content-type") || "unknown content type";
+          const hint = response.status >= 500
+            ? " Check the Vercel Function Logs for the runtime error."
+            : " Confirm the deployment includes the Python API function; /api/health should return JSON.";
+          throw new Error(`Analysis API returned HTTP ${response.status} (${contentType}), not JSON.${hint}`);
+        }
+        if (!response.ok) throw new Error(data.error || `Analysis failed (${response.status}).`);
+        renderResults(data, file.name);
+      } catch (error) {
+        showError(error instanceof Error ? error.message : "Could not reach the analysis service. Please try again.");
+      }
+    }
+
+    dropzone.addEventListener("click", (event) => {
+      if (event.target !== fileInput) fileInput.click();
+    });
+    dropzone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+    fileInput.addEventListener("change", () => analyzeFile(fileInput.files?.[0]));
+    ["dragenter", "dragover"].forEach((eventName) => dropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropzone.classList.add("border-indigo-400", "bg-indigo-500/[.06]");
+    }));
+    ["dragleave", "drop"].forEach((eventName) => dropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropzone.classList.remove("border-indigo-400", "bg-indigo-500/[.06]");
+    }));
+    dropzone.addEventListener("drop", (event) => analyzeFile(event.dataTransfer?.files?.[0]));
+    resetButton.addEventListener("click", resetView);
+  </script>
+</body>
+</html>
